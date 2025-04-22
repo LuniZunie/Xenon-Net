@@ -5,4 +5,5 @@
 
 typedef std::function<double(const double)> ActivationFunction;
 typedef double (*FitnessFunction)(int, int, std::vector<double>);
+typedef std::vector<double> (*InputFunction)(int, int);
 typedef void (*OutputFunction)(int, int, std::vector<double>);

@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../typedef/functions.hpp"
+
 #include "../resource/compiler/.hpp"
 #include "../resource/random/.hpp"
 #include "../resource/range/.hpp"
@@ -19,7 +21,7 @@
 #include "synapse.hpp"
 
 struct NetworkScope {
-    const Configuration config;
+    const Configuration& config;
     Registry<int> registry;
 
     std::list<Layer&> layers;
@@ -37,6 +39,13 @@ class Network {
     private:
         const Population& population;
         NetworkScope& scope;
+
+        struct Activator {
+            ActivationFunction function;
+            std::string string;
+        } activator;
+        FitnessFunction trainer;
+        OutputFunction receiver;
 
         Registry<int>& networker;
         Compiler& compiler;
@@ -62,8 +71,19 @@ class Network {
         };
         struct Group { int group, index; };
 
-        Network(const Population& pop, NetworkScope& scp, Registry<int>& reg, Compiler& cmp, const int i) :
-            population(pop), scope(scp), networker(reg), compiler(cmp),
+        Network(
+            const Population& pop, NetworkScope& scp,
+            ActivationFunction activatorFN, std::string activatorSTR,
+            FitnessFunction trainerFN,
+            OutputFunction receiverFN,
+            Registry<int>& reg, Compiler& cmp,
+            const int i
+        ) :
+            population(pop), scope(scp),
+            activator({ activatorFN, activatorSTR }),
+            trainer(trainerFN),
+            receiver(receiverFN),
+            networker(reg), compiler(cmp),
             id(reg.add(0x0)), index(i) { };
 
         int get_id() const;
