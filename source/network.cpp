@@ -159,7 +159,7 @@ std::string Network::get_code() const {
     for (const auto& layer : layers) {
         auto& neurons = scope.neurons[layer];
         for (const auto& neuron : neurons) {
-            const Neuron::CodeData datum = neuron.get_code(data, this->activator.function);
+            const Neuron::CodeData datum = neuron.get_code(data, activator.function);
             data.insert_or_assign(neuron, datum);
 
             if (depth == depthMax) {
@@ -185,7 +185,7 @@ std::string Network::get_code() const {
     return  "#include <cstdlib>\n"
             "#include <iostream>\n"
             "\n"
-            "const auto activator = "+this->activator.string+";\n"
+            "const auto activator = "+activator.string+";\n"
             "\n"
             "int main(int argc, char* argv[]) {\n"
                 +code+
@@ -211,11 +211,10 @@ void Network::input(const std::vector<double>& inputs) {
 
     const std::vector<double> output = compiler.execute<double>(std::to_string(id), args);
 
-    const Group group = this->get_group();
-    const double fit = this->trainer(group.group, group.index, output);
+    const double fit = trainer(get_group(), output);
     fitness.sum += fit, fitness.count++;
 
-    this->reciever(group.group, group.index, output);
+    this->receiver(get_group(), output);
 };
 
 void Network::_import(const ImportExport data) {

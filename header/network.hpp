@@ -36,6 +36,9 @@ struct NetworkScope {
 };
 
 class Network {
+    public:
+        enum Status { Dead, Alive };
+
     private:
         const Population& population;
         NetworkScope& scope;
@@ -52,8 +55,7 @@ class Network {
 
         int id, index;
 
-        enum Status { Dead, Alive };
-        Status status{ Alive };
+        Status status;
 
         struct Fitness {
             double sum;
@@ -69,10 +71,12 @@ class Network {
             int fitCount; double fitSum;
             ImportExport(const int i, const Fitness& fit) : index(i), fitCount(fit.count), fitSum(fit.sum) { };
         };
-        struct Group { int group, index; };
+        struct Group : NetworkIndex {
+            Group(int g, int i) : NetworkIndex(g, i) { };
+        };
 
         Network(
-            const Population& pop, NetworkScope& scp,
+            const Population& pop, NetworkScope scp,
             ActivationFunction activatorFN, std::string activatorSTR,
             FitnessFunction trainerFN,
             OutputFunction receiverFN,

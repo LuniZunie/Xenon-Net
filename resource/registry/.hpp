@@ -19,7 +19,7 @@ class Registry {
         Registry(const Registry&) = delete;
         Registry(Registry&&) = delete;
 
-        ~Registry() { clear(); };
+        ~Registry() { clr(); };
 
         int add(const T label) {
             if (groups.find(label) == groups.end())
@@ -67,7 +67,7 @@ class Registry {
             }
         };
 
-        void clear() {
+        void clr() {
             for (auto& pair : groups) {
                 Group& group = pair.second;
                 group.items.clear();
