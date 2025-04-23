@@ -66,6 +66,22 @@ void Network::init() {
     for (int j = 0; j < outputs; j++)
         outputLayer.add_neuron(j);
 };
+void Network::clone_from(const Network& other) {
+    clear();
+    for (const auto& layer : other.scope.layers) {
+        Layer newLayer = add_layer(layer.get_depth());
+        for (const auto& neuron : other.scope.neurons[layer]) {
+            Neuron newNeuron = newLayer.add_neuron(neuron.get_height());
+            newNeuron.set_bias(neuron.get_bias());
+
+            for (const auto& [ source, synapse ] : other.scope.synapses.source[neuron]) {
+                const auto& neurons = scope.neurons[*std::next(scope.layers.begin(), source.get_depth())];
+                Synapse newSynapse = newNeuron.add_synapse(*std::next(neurons.begin(), source.get_height()));
+                newSynapse.set_weight(synapse.get_weight());
+            }
+        }
+    }
+};
 void Network::evolve() {
     const bool dynamic = !scope.config.network.hidden.has_value();
 

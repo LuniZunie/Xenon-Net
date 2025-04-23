@@ -7,11 +7,14 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include "../typedef/functions.hpp"
 
 #include "../resource/compiler/.hpp"
+#include "../resource/math/.hpp"
+#include "../resource/random/.hpp"
 #include "../resource/registry/.hpp"
 
 #include "activator.hpp"
@@ -65,6 +68,7 @@ class Population {
         InputFunction _sender{ [](NetworkIndex) -> std::vector<double> { return { }; } };
         OutputFunction _receiver{ [](NetworkIndex, std::vector<double>) { } };
 
+        Network new_network(const int index);
         Network add_network(const int index);
 
     public:

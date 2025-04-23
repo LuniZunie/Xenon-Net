@@ -1,14 +1,17 @@
 #include "../header/population.hpp"
 
-Network Population::add_network(const int index) {
-    Network network(
+Network Population::new_network(const int index) {
+    return Network(
         *this, NetworkScope(config),
-        this->_activator.function, this->_activator.string,
-        this->_trainer,
-        this->_receiver,
+        _activator.function, _activator.string,
+        _trainer,
+        _receiver,
         networker, compiler,
         index
     );
+};
+Network Population::add_network(const int index) {
+    Network network = new_network(index);
     networks.push_back(network);
     return network;
 };
@@ -155,7 +158,7 @@ void Population::train(int iterations, std::optional<int> interval) {
                 }
 
                 if (network.get_status() == Network::Status::Alive)
-                    threads.emplace_back([ &network, this ]() {
+                    threads.emplace_back([&network, this]() {
                         network.input(_sender(network.get_group()));
                     });
             }
@@ -177,7 +180,7 @@ void Population::train(int iterations, std::optional<int> interval) {
                 }
 
                 if (network.get_status() == Network::Status::Alive)
-                    threads.emplace_back([ &network, this ]() {
+                    threads.emplace_back([&network, this]() {
                         network.input(_sender(network.get_group()));
                     });
             }
@@ -197,7 +200,7 @@ void Population::evolve() {
     Network* best = nullptr;
     Network* worst = nullptr;
 
-    int max, min;
+    double max, min;
     std::vector<std::tuple<Network&, double>> fits;
     for (auto& network : networks) {
         const double fit = network.get_fitness();
@@ -227,7 +230,53 @@ void Population::evolve() {
     else if (statistics.worst.gen < statistics.worst.all)
         statistics.worst.all = { worst->get_fitness(), worst->get_code() };
 
-    auto normalize = [](double n, double mn, double mx) {
-        return (n - mn) / (mx - mn);
-    };
+    double weight = 0;
+    for (auto& [ network, fit ] : fits) {
+        double w = Math::norm_one(fit, min, max);
+        if (config.network.fitness.inverse)
+            w = 1 - w;
+        w = Math::denorm_one(w, config.population.equality, 1.0);
+
+        weight += w;
+        fit = w;
+    }
+
+    networker.del(0x0);
+
+    std::unordered_map<Network&, std::vector<int>> picked = { };
+    const int size = config.population.size;
+    for (int i = 0; i < size; i++) {
+        double rng = Random::gen<double>(Range<double>(0, weight, true, false));
+        for (auto& [ network, fit ] : fits) {
+            rng -= fit;
+            if (rng <= 0) {
+                picked[network].push_back(i);
+                break;
+            }
+        }
+    }
+
+    std::vector<std::thread> threads;
+    std::vector<Network> newNetworks = { };
+    for (auto& [ network, indices ] : picked)
+        for (const auto& index : indices)
+            threads.emplace_back([&newNetworks, &network, index, this]() {
+                Network newNetwork = new_network(index);
+                newNetwork.clone_from(network);
+                newNetwork.evolve();
+                newNetwork.prime();
+                newNetworks.push_back(newNetwork);
+            });
+
+    for (auto& thread : threads)
+        if (thread.joinable())
+            thread.join();
+
+    networks = newNetworks;
+
+    statistics.generation++;
+    statistics.alive = size;
+    statistics.dead = 0;
+
+    return;
 };

@@ -104,6 +104,7 @@ class Network {
 
         void clear();
         void init();
+        void clone_from(const Network& other);
         void evolve();
 
         void prime() const;
