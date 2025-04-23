@@ -95,7 +95,7 @@ void Network::evolve() {
         } else if (delta < 0) {
             delta = std::min(-delta, (int)layers.size() - 2);
             for (int i = 0; i < delta; i++)
-                Random::list<Layer&>(layers, 1, 1).del();
+                Random::pick(layers, 1, 1).del();
         }
     }
 
@@ -112,7 +112,7 @@ void Network::evolve() {
             } else if (delta < 0) {
                 delta = std::min(-delta, (int)neurons.size());
                 for (int i = 0; i < delta; i++)
-                    Random::list<Neuron&>(neurons).del(false);
+                    Random::pick(neurons).del(false);
             }
         }
 
@@ -132,14 +132,14 @@ void Network::evolve() {
             if (delta > 0) {
                 int size = otherLayers.size();
                 for (int i = 0; i < delta; i++) {
-                    auto& targetNeurons = scope.neurons[Random::list<Layer&>(otherLayers)];
-                    neuron.add_synapse(Random::list<Neuron&>(targetNeurons));
+                    auto& targetNeurons = scope.neurons[Random::pick(otherLayers)];
+                    neuron.add_synapse(Random::pick(targetNeurons));
                 }
             } else if (delta < 0) {
                 auto& synapses = scope.synapses.list[neuron];
                 delta = std::min(-delta, (int)synapses.size());
                 for (int i = 0; i < delta; i++)
-                    Random::list<Synapse&>(synapses).del(&neuron);
+                    Random::pick(synapses).del(&neuron);
             }
 
             if (depth != 0) {

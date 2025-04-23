@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include <list>
+#include <iterator>
 #include <random>
 
 #include "../numeral/.hpp"
@@ -26,19 +26,40 @@ class Random {
             } else
                 throw std::invalid_argument("Unsupported type for Random.");
         };
+        template <Numeral T>
+        static T gen(T min, T max, bool incMin = true, bool incMax = false) {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            if constexpr (std::is_integral_v<T>) {
+                if (!incMin) min++;
+                if (!incMax) max--;
 
-        template<typename T>
-        static T list(const std::list<T>& items, int lBound = 0, int rBound = 0) {
-            if (lBound < 0 || rBound < 0)
-                throw std::out_of_range("Random::list: lBound and rBound must be non-negative.");
+                std::uniform_int_distribution<T> dis(min, max);
+                return dis(gen);
+            } else if constexpr (std::is_floating_point_v<T>) {
+                if (!incMin) min += std::numeric_limits<T>::epsilon();
+                if (incMax) max += std::numeric_limits<T>::epsilon();
 
-            const int min = lBound, max = items.size() - rBound;
-            if (min > max)
-                throw std::invalid_argument("Random::list: lBound > rBound");
-            else if (min == max)
-                return *std::next(items.begin(), min);
-            else
-                return *std::next(items.begin(), Random::gen<int>(Range<int>(min, max, true, false)));
+                std::uniform_real_distribution<T> dis(min, max);
+                return dis(gen);
+            } else
+                throw std::invalid_argument("Unsupported type for Random.");
+        };
+
+        template <typename Container>
+        static auto pick(const Container& container, int left = 0, int right = 0) -> Container::value_type {
+            if (left < 0 || right < 0)
+                throw std::invalid_argument("Random::pick: invalid range.");
+
+            using T = typename Container::value_type;
+            if (container.empty())
+                throw std::invalid_argument("Random::pick: empty container.");
+
+            const int mn = left, mx = container.size() - right;
+            if (mn >= mx)
+                throw std::invalid_argument("Random::pick: invalid range.");
+
+            return std::next(container.begin(), Random::gen<int>(Range<int>(mn, mx, true, false)));
         };
 
         template <Numeral T>

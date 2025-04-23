@@ -267,6 +267,7 @@ void Population::evolve() {
                 newNetwork.prime();
                 newNetworks.push_back(newNetwork);
             });
+            
 
     for (auto& thread : threads)
         if (thread.joinable())

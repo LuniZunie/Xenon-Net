@@ -107,13 +107,14 @@ class Math {
             return result;
         };
         template <typename Container>
-        static auto denorm(const std::vector<double>& a, double mn, double mx) -> std::vector<double> {
+        static auto denorm(const Container& a, Container::value_type mn, Container::value_type mx) -> std::vector<typename Container::value_type> {
+            using T = typename Container::value_type;
             if (a.empty())
                 throw std::invalid_argument("Math::denormalize: empty container.");
 
-            std::vector<double> result(a.size());
+            std::vector<T> result(a.size());
             std::transform(a.begin(), a.end(), result.begin(),
-                [mn, mx](double v) { return mn + (mx - mn) * v; }
+                [mn, mx](T v) { return mn + (mx - mn) * v; }
             );
 
             return result;
