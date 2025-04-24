@@ -54,7 +54,7 @@ void Population::start() {
     if (_status != OFF)
         throw std::runtime_error("Population: already started.");
 
-    networker.del(0x0);
+    networker.erase(0x0);
     networks.clear();
 
     const int size = config.population.size;
@@ -89,7 +89,6 @@ void Population::resume() {
 void Population::stop() {
     if (_status == OFF)
         throw std::runtime_error("Population: not started.");
-
     _status = OFF;
 };
 void Population::restart() {
@@ -232,21 +231,21 @@ void Population::evolve() {
 
     double weight = 0;
     for (auto& [ network, fit ] : fits) {
-        double w = Math::norm_one(fit, min, max);
+        double w = Math::norm(fit, min, max);
         if (config.network.fitness.inverse)
             w = 1 - w;
-        w = Math::denorm_one(w, config.population.equality, 1.0);
+        w = Math::denorm(w, config.population.equality, 1.0);
 
         weight += w;
         fit = w;
     }
 
-    networker.del(0x0);
+    networker.erase(0x0);
 
     std::unordered_map<Network&, std::vector<int>> picked = { };
     const int size = config.population.size;
     for (int i = 0; i < size; i++) {
-        double rng = Random::gen<double>(Range<double>(0, weight, true, false));
+        double rng = Random::generate(0.0, weight);
         for (auto& [ network, fit ] : fits) {
             rng -= fit;
             if (rng <= 0) {

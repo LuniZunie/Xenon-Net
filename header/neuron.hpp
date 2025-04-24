@@ -40,7 +40,7 @@ class Neuron {
 
         Neuron(const Population& pop, const Network& net, const Layer& lay, NetworkScope& scp) :
             population(pop), network(net), layer(lay), scope(scp),
-            id(scope.registry.add(0x2)), height(-1), bias(Random::gen<double>(scp.config.neuron.bias)) { };
+            id(scope.registry.add(0x2)), height(-1), bias(Random::generate<double>(scp.config.neuron.bias)) { };
 
         int get_id() const;
         int get_index() const;
@@ -56,7 +56,7 @@ class Neuron {
         Synapse add_synapse(const Neuron& neuron) const;
 
         void update(const Update type);
-        const CodeData get_code(const std::unordered_map<const Neuron&, const CodeData&>& data, const ActivationFunction& activator) const;
+        const CodeData get_code(const std::unordered_map<const Neuron*, const CodeData*>& data, const ActivationFunction& activator) const;
 
         void _import(const ImportExport data);
         const ImportExport _export() const;

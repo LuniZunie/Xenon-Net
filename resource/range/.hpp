@@ -1,24 +1,25 @@
 #pragma once
 
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 
 #include "../numeral/.hpp"
 
-template <Numeral T>
+template <numeral::is T>
 class Range {
     private:
-        static bool ValidBounds(T min, T max, bool incMin, bool incMax, T step) {
-            if (incMin) min += step;
-            if (incMax) max -= step;
-
+        static bool valid_bounds(T min, T max, T step, bool incMin, bool incMax) {
+            if (!incMin) min += step;
+            if (!incMax) max -= step;
+        
             return min <= max;
         };
 
-        T min, max, step;
+        T _min, _max, _step;
         bool incMin, incMax;
 
-        T SmallestValue() const {
+        constexpr auto smallest_value() const -> T {
             if constexpr (std::is_integral_v<T>)
                 return 1;
             else if constexpr (std::is_floating_point_v<T>)
@@ -27,148 +28,149 @@ class Range {
                 throw std::invalid_argument("Unsupported type for Range.");
         };
 
-    public:
-        Range(T min, T max, bool incMin = true, bool incMax = true, T step = 0) :
-            min(min), max(max), step(step),
-            incMin(incMin), incMax(incMax) {
-            if (step == 0)
-                step = SmallestValue();
-            else if (step < 0)
-                throw std::invalid_argument("Step must be positive.");
-
-            this->step = step;
-            if (!Range<T>::ValidBounds(min, max, incMin, incMax, step))
-                throw std::invalid_argument("Invalid range bounds.");
-        };
-        Range(const Range<T>& other) : min(other.min), max(other.max), incMin(other.incMin), incMax(other.incMax), step(other.step) { };
-        Range(Range<T>&& other) :
-            min(other.min), max(other.max),
-            incMin(other.incMin), incMax(other.incMax),
-            step(other.step) {
-            other.min = 0, other.max = 0, other.step = 0;
-        };
-
-        T get_rawMin() const { return this->min; };
-        T get_rawMax() const { return this->max; };
-
-        T get_min() const { return incMin ? min : min + step; };
-        T get_max() const { return incMax ? max : max - step; };
-        T get_step() const { return this->step; };
-
-        bool get_includeLeft() const { return incMin; };
-        bool get_includeRight() const { return incMax; };
-
-        T get_diff() const { return get_min() - get_max(); };
-        T get_size() const { return (get_min() - get_max()) / step + 1; };
-
-        bool inside(T n) const {
-            const T min = get_min(), max = get_max();
-            return n >= min && n <= max;
-        };
-        bool outside(T n) const {
-            const T min = get_min(), max = get_max();
-            return n < min || n > max;
-        };
-
-        T get_end() const {
-            const T min = get_min();
+        auto stop() const -> T {
+            const T min = this->min();
             T end;
             if constexpr (std::is_integral_v<T>)
-                end = max - (max - min) % step;
+                end = _max - (_max - min) % _step;
             else if constexpr (std::is_floating_point_v<T>)
-                end = max - std::fmod(max - min, step);
+                end = _max - std::fmod(_max - min, _step);
             else
                 throw std::invalid_argument("Unsupported type for Range.");
-
-            if (!incMax && end == max)
-                end -= step;
+        
+            if (!incMax && end == _max)
+                end -= _step;
             return end;
         };
-        T get_rend() const {
-            const T max = get_max();
+        auto rstop() const -> T {
+            const T max = this->max();
             T rend;
             if constexpr (std::is_integral_v<T>)
-                rend = min + (max - min) % step;
+                rend = _min + (max - _min) % _step;
             else if constexpr (std::is_floating_point_v<T>)
-                rend = min + std::fmod(max - min, step);
+                rend = _min + std::fmod(max - _min, _step);
             else
                 throw std::invalid_argument("Unsupported type for Range.");
-
-            if (!incMin && rend == min)
-                rend += step;
+        
+            if (!incMin && rend == _min)
+                rend -= _step;
             return rend;
         };
 
-        Range<T> operator+(T value) const { return Range<T>(min + value, max + value, step); };
-        Range<T> operator+=(T value) {
-            min += value, max += value;
+    public:
+        Range(T min, T max, T step, bool l = true, bool r = true) :
+            _min(min), _max(max), _step(step),
+            incMin(l), incMax(r) {
+            if (_step <= 0)
+                throw std::invalid_argument("Invalid step value.");
+            if (!valid_bounds(_min, _max, _step, incMin, incMax))
+                throw std::invalid_argument("Invalid range bounds.");
+        };
+        Range(T min, T max, bool incMin = true, bool incMax = true) : Range(min, max, smallest_value(), incMin, incMax) { };
+        Range(T n) : Range(-n, n, smallest_value(), true, true) { };
+        Range(const Range<T>& other) :
+            _min(other._min), _max(other._max),
+            incMin(other.incMin), incMax(other.incMax),
+            _step(other._step) { };
+        Range(Range<T>&& other) :
+            _min(other._min), _max(other._max),
+            incMin(other.incMin), incMax(other.incMax),
+            _step(other._step) {
+            other._min = 0, other._max = 0, other._step = 0;
+        };
+
+        auto raw_min() const -> T { return _min; };
+        auto raw_max() const -> T { return _max; };
+
+        auto min() const -> T { return incMin ? _min : _min + _step; };
+        auto max() const -> T { return incMax ? _max : _max - _step; };
+        auto step() const -> T { return _step; };
+
+        bool include_left() const { return incMin; };
+        bool include_right() const { return incMax; };
+
+        auto difference() const -> T { return min() - max(); };
+        int size() const { return std::abs(difference() / _step) + 1; };
+        bool empty() const { return min() == max(); };
+
+        bool inside(const T n) const { return n >= min() && n <= max(); };
+        bool outside(const T n) const { return n < min() || n > max(); };
+
+        Range<T> operator+(const T val) const {
+            return Range<T>(min() + val, max() + val, _step, incMin, incMax);
+        };
+        Range<T> operator+=(const T val) {
+            _min += val;
+            _max += val;
+            return *this;
+        };
+        Range<T>& operator++() {
+            _min += _step;
+            _max += _step;
             return *this;
         };
         Range<T> operator++(int) {
-            min += step, max += step;
-            return *this;
+            Range<T> temp = *this;
+            (*this)++;
+            return temp;
         };
 
-        Range<T> operator-(T value) const { return Range<T>(min - value, max - value, step); };
-        Range<T> operator-=(T value) {
-            min -= value, max -= value;
+        Range<T> operator-(const T val) const {
+            return Range<T>(min() - val, max() - val, _step, incMin, incMax);
+        };
+        Range<T> operator-=(const T val) {
+            _min -= val;
+            _max -= val;
+            return *this;
+        };
+        Range<T>& operator--() {
+            _min -= _step;
+            _max -= _step;
             return *this;
         };
         Range<T> operator--(int) {
-            min -= step, max -= step;
-            return *this;
+            Range<T> temp = *this;
+            (*this)--;
+            return temp;
         };
 
-        Range<T> operator*(T value) const { return Range<T>(min * value, max * value, step); };
-        Range<T> operator*=(T value) {
-            min *= value, max *= value;
-            return *this;
-        };
-
-        Range<T> operator/(T value) const {
-            if (value == 0)
-                throw std::invalid_argument("Division by zero.");
-
-            return Range<T>(min / value, max / value, step);
-        };
-        Range<T> operator/=(T value) {
-            if (value == 0)
-                throw std::invalid_argument("Division by zero.");
-
-            min /= value, max /= value;
-            return *this;
-        };
-
-        Range<T> operator%(T value) const { return Range<T>(min % value, max % value, step); };
-        Range<T> operator%=(T value) {
-            min %= value, max %= value;
-            return *this;
-        };
-
-        class Iterator {
+        class iterator {
             private:
-                T current, step;
+                T _current, _step;
 
             public:
-                Iterator(T current, T step) : current(current), step(step) { };
+                iterator(T current, T step) : _current(current), _step(step) { };
 
-                T operator*() const { return current; };
-                Iterator& operator++() {
-                    current += step;
+                auto operator*() const -> T { return _current; };
+
+                auto operator++() -> iterator& {
+                    _current += _step;
                     return *this;
                 };
-                Iterator operator++(int) {
-                    Iterator temp = *this;
+                auto operator++(int) -> iterator {
+                    iterator temp = *this;
                     ++(*this);
                     return temp;
                 };
 
-                bool operator!=(const Iterator& other) const { return current != other.current; };
-                bool operator==(const Iterator& other) const { return current == other.current; };
+                bool operator!=(const iterator& other) const {
+                    return _current != other._current;
+                };
+                bool operator==(const iterator& other) const {
+                    return _current == other._current;
+                };
         };
 
-        Iterator begin() const { return Iterator(get_min(), step); };
-        Iterator end() const { return Iterator(get_end() + step, step); };
-        Iterator rbegin() const { return Iterator(get_max(), -step); };
-        Iterator rend() const { return Iterator(get_rend() - step, -step); };
+        auto begin() const -> iterator {
+            return iterator(min(), _step);
+        };
+        auto end() const -> iterator {
+            return iterator(stop() + _step, _step);
+        };
+        auto rbegin() const -> iterator {
+            return iterator(max(), -_step);
+        };
+        auto rend() const -> iterator {
+            return iterator(rstop() - _step, -_step);
+        };
 };

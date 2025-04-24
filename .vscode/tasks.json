@@ -13,7 +13,10 @@
                 "-o",
                 "build/main.exe"
             ],
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
             "problemMatcher": [
                 "$gcc"
             ]
@@ -23,6 +26,7 @@
             "label": "C/C++: g++.exe build active file",
             "command": "C:/msys64/ucrt64/bin/g++.exe",
             "args": [
+                "-std=c++23",
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
@@ -46,11 +50,13 @@
             "label": "C/C++: gcc.exe build active file",
             "command": "C:/msys64/ucrt64/bin/gcc.exe",
             "args": [
+                "-std=c++23",
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "${fileDirname}\\${fileBasenameNoExtension}.exe",
+                "-lstdc++"
             ],
             "options": {
                 "cwd": "C:/msys64/ucrt64/bin"

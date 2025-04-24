@@ -40,7 +40,7 @@ class Synapse {
             population(pop), network(net), scope(scp),
             source(src), target(tgt),
             id(scope.registry.add(0x3)),
-            weight(Random::gen<double>(scp.config.synapse.weight)) { };
+            weight(Random::generate<double>(scp.config.synapse.weight)) { };
 
         int get_id() const;
         int get_index() const;

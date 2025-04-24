@@ -24,7 +24,7 @@ void Neuron::set_bias(const double b) {
 };
 double Neuron::mod_bias(const double n) {
     const auto range = scope.config.neuron.bias;
-    bias = std::clamp(bias + n, range.get_min(), range.get_max());
+    bias = std::clamp(bias + n, range.min(), range.max());
     return bias;
 };
 
@@ -32,12 +32,11 @@ Synapse Neuron::add_synapse(const Neuron& neuron) const {
     if (neuron.get_id() == id)
         throw std::invalid_argument("Neuron: cannot add synapse to itself.");
 
-    const auto ref = *this;
-    Synapse synapse(population, network, scope, ref, neuron);
+    Synapse synapse(population, network, scope, *this, neuron);
 
-    scope.synapses.list[ref].push_back(synapse);
-    scope.synapses.source[ref].insert_or_assign(neuron, synapse);
-    scope.synapses.target[neuron].insert_or_assign(ref, synapse);
+    scope.synapses.list[this].push_back(&synapse);
+    scope.synapses.source[this].insert_or_assign(&neuron, &synapse);
+    scope.synapses.target[&neuron].insert_or_assign(this, &synapse);
 
     return synapse;
 };
@@ -49,20 +48,20 @@ void Neuron::update(const Update type) {
             if (layer.get_depth() == 0)
                 inlet.insert(this);
             else
-                for (const auto& [ neuron, synapse ] : scope.synapses.source[*this])
-                    inlet.insert(neuron.inlet.begin(), neuron.inlet.end());
+                for (const auto [ neuron, synapse ] : scope.synapses.source[this])
+                    inlet.insert(neuron->inlet.begin(), neuron->inlet.end());
             break;
         case Outlet:
             outlet.clear();
             if (layer.get_depth() == layer.get_size() - 1)
                 outlet.insert(this);
             else
-                for (const auto& [ neuron, synapse ] : scope.synapses.target[*this])
-                    outlet.insert(neuron.outlet.begin(), neuron.outlet.end());
+                for (const auto [ neuron, synapse ] : scope.synapses.target[this])
+                    outlet.insert(neuron->outlet.begin(), neuron->outlet.end());
             break;
     }
 };
-const Neuron::CodeData Neuron::get_code(const std::unordered_map<const Neuron&, const CodeData&>& data, const ActivationFunction& activator) const {
+const Neuron::CodeData Neuron::get_code(const std::unordered_map<const Neuron*, const CodeData*>& data, const ActivationFunction& activator) const {
     if (outlet.empty())
         return { };
 
@@ -71,19 +70,19 @@ const Neuron::CodeData Neuron::get_code(const std::unordered_map<const Neuron&, 
         return { 2, "const double "+name+"=activator("+std::to_string(bias)+"+std::atof(argv["+std::to_string(height)+"]));", name };
     else if (inlet.empty()) { // no inputs, can calculate beforehand
         int n = bias;
-        for (const auto& [ neuron, synapse ] : scope.synapses.source[*this])
-            n += synapse.get_weight() * std::stod(data.at(neuron).code);
+        for (const auto [ neuron, synapse ] : scope.synapses.source[this])
+            n += synapse->get_weight() * std::stod(data.at(neuron)->code);
         return { 1, std::to_string(activator(n)), name };
     } else { // has inputs, need to calculate on the fly
         std::string code = "";
         double likeTerms = bias;
-        for (const auto& [ neuron, synapse ] : scope.synapses.source[*this]) {
-            const CodeData& datum = data.at(neuron);
-            const double weight = synapse.get_weight();
+        for (const auto [ neuron, synapse ] : scope.synapses.source[this]) {
+            const CodeData* datum = data.at(neuron);
+            const double weight = synapse->get_weight();
             if (weight != 0) {
-                switch (datum.type) {
+                switch (datum->type) {
                     case 1: // parsed
-                        likeTerms += weight * std::stod(datum.code);
+                        likeTerms += weight * std::stod(datum->code);
                         break;
                     case 2: // code
                         code += "+"+name+"*"+std::to_string(weight);
@@ -113,17 +112,16 @@ const Neuron::ImportExport Neuron::_export() const {
 };
 
 void Neuron::del(bool byLayer) {
-    auto& ref = *this;
-    for (auto& synapse : scope.synapses.list[ref])
-        synapse.del(this);
+    for (auto synapse : scope.synapses.list[this])
+        synapse->del(this);
 
-    scope.synapses.list.erase(ref);
-    scope.synapses.source.erase(ref);
-    scope.synapses.target.erase(ref);
+    scope.synapses.list.erase(this);
+    scope.synapses.source.erase(this);
+    scope.synapses.target.erase(this);
 
     if (!byLayer)
-        scope.neurons[layer].remove(ref);
+        scope.neurons[&layer].remove(this);
 
-    scope.registry.del(0x2, id);
+    scope.registry.erase(0x2, id);
     delete this;
 };

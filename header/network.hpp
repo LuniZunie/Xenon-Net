@@ -24,12 +24,12 @@ struct NetworkScope {
     const Configuration& config;
     Registry<int> registry;
 
-    std::list<Layer&> layers;
-    std::unordered_map<const Layer&, std::list<Neuron&>> neurons;
+    std::list<Layer*> layers;
+    std::unordered_map<const Layer*, std::list<Neuron*>> neurons;
     struct Synapses {
-        std::unordered_map<const Neuron&, std::list<Synapse&>> list;
-        std::unordered_map<const Neuron&, std::unordered_map<const Neuron&, Synapse&>> source;
-        std::unordered_map<const Neuron&, std::unordered_map<const Neuron&, Synapse&>> target;
+        std::unordered_map<const Neuron*, std::list<Synapse*>> list;
+        std::unordered_map<const Neuron*, std::unordered_map<const Neuron*, Synapse*>> source;
+        std::unordered_map<const Neuron*, std::unordered_map<const Neuron*, Synapse*>> target;
     } synapses;
 
     NetworkScope(const Configuration& config) : config(config), registry(), layers(), neurons(), synapses() {};

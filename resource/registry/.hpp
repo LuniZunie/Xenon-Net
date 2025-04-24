@@ -1,6 +1,6 @@
 #pragma once
 
-#include <optional>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -19,61 +19,28 @@ class Registry {
         Registry(const Registry&) = delete;
         Registry(Registry&&) = delete;
 
-        ~Registry() { clr(); };
+        ~Registry() { clear(); };
 
-        int add(const T label) {
-            if (groups.find(label) == groups.end())
-                groups[label] = Group();
+        int add(const T label);
 
-            Group& group = groups[label];
-            const int id = group.next++;
-            group.items.insert(id);
+        bool has(const T label) const;
+        bool has(const T label, const int id) const;
 
-            return id;
-        };
-        bool has(const T label, const std::optional<int> id = std::nullopt) {
-            if (id.has_value()) {
-                if (groups.find(label) == groups.end())
-                    return false;
+        bool empty() const;
 
-                const Group& group = groups[label];
-                return group.items.find(id.value()) != group.items.end();
-            } else
-                return groups.find(label) != groups.end();
-        };
-        bool del(const T label, const std::optional<int> id = std::nullopt) {
-            if (groups.find(label) == groups.end())
-                return false;
+        bool erase(const T label);
+        bool erase(const T label, const int id);
 
-            if (id.has_value()) {
-                Group& group = groups[label];
-                const int value = id.value();
+        void clear();
 
-                if (group.items.find(value) == group.items.end())
-                    return false;
+        std::unordered_set<int>::iterator begin(const T label) const;
+        std::unordered_set<int>::iterator end(const T label) const;
 
-                group.items.erase(value);
-                if (group.items.empty())
-                    groups.erase(label);
+        std::unordered_set<int>::iterator cbegin(const T label) const;
+        std::unordered_set<int>::iterator cend(const T label) const;
 
-                return true;
-            } else {
-                Group& group = groups[label];
-                for (const auto& id : group.items)
-                    group.items.erase(id);
-
-                groups.erase(label);
-                return true;
-            }
-        };
-
-        void clr() {
-            for (auto& pair : groups) {
-                Group& group = pair.second;
-                group.items.clear();
-            }
-            groups.clear();
-        };
+        std::unordered_set<int>::iterator rbegin(const T label) const;
+        std::unordered_set<int>::iterator rend(const T label) const;
 
         Registry& operator=(const Registry&) = delete;
         Registry& operator=(Registry&&) = delete;

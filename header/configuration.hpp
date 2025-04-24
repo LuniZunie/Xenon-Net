@@ -28,10 +28,10 @@ struct Configuration {
         } fitness;
     } network;
     struct Neuron {
-        Range<double> bias{-1, 1};
+        Range<double> bias{1.0};
     } neuron;
     struct Synapse {
-        Range<double> weight{-1, 1};
+        Range<double> weight{1.0};
     } synapse;
     struct Mutate {
         struct Layer {

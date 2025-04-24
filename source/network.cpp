@@ -4,9 +4,9 @@ void Network::update(const Update type) const {
     switch (type) {
         case InletOutlet:
             for (auto layer = scope.layers.begin(); layer != scope.layers.end(); layer++)
-                (*layer).update(Neuron::Update::Inlet);
+                (*layer)->update(Neuron::Update::Inlet);
             for (auto layer = scope.layers.rbegin(); layer != scope.layers.rend(); layer++)
-                (*layer).update(Neuron::Update::Outlet);
+                (*layer)->update(Neuron::Update::Outlet);
             break;
     }
 };
@@ -35,13 +35,13 @@ Layer Network::add_layer(const int d) const {
     Layer layer(population, *this, scope);
     layer.set_depth(d);
 
-    scope.layers.insert(std::next(scope.layers.begin(), d), layer);
+    scope.layers.insert(std::next(scope.layers.begin(), d), &layer);
     return layer;
 };
 
 void Network::clear() {
-    for (auto& layer : scope.layers)
-        layer.del();
+    for (auto layer : scope.layers)
+        layer->del();
     fitness = {0, 0};
 };
 void Network::init() {
@@ -68,16 +68,16 @@ void Network::init() {
 };
 void Network::clone_from(const Network& other) {
     clear();
-    for (const auto& layer : other.scope.layers) {
-        Layer newLayer = add_layer(layer.get_depth());
-        for (const auto& neuron : other.scope.neurons[layer]) {
-            Neuron newNeuron = newLayer.add_neuron(neuron.get_height());
-            newNeuron.set_bias(neuron.get_bias());
+    for (const auto layer : other.scope.layers) {
+        Layer newLayer = add_layer(layer->get_depth());
+        for (const auto neuron : other.scope.neurons[layer]) {
+            Neuron newNeuron = newLayer.add_neuron(neuron->get_height());
+            newNeuron.set_bias(neuron->get_bias());
 
-            for (const auto& [ source, synapse ] : other.scope.synapses.source[neuron]) {
-                const auto& neurons = scope.neurons[*std::next(scope.layers.begin(), source.get_depth())];
-                Synapse newSynapse = newNeuron.add_synapse(*std::next(neurons.begin(), source.get_height()));
-                newSynapse.set_weight(synapse.get_weight());
+            for (const auto [ source, synapse ] : other.scope.synapses.source[neuron]) {
+                const auto neurons = scope.neurons[*std::next(scope.layers.begin(), source->get_depth())];
+                Synapse newSynapse = newNeuron.add_synapse(**std::next(neurons.begin(), source->get_height()));
+                newSynapse.set_weight(synapse->get_weight());
             }
         }
     }
@@ -91,28 +91,28 @@ void Network::evolve() {
         if (delta > 0) {
             int size = layers.size();
             for (int i = 0; i < delta; i++)
-                add_layer(Random::gen<int>(Range<int>(0, size++ - 1, false, false)));
+                add_layer(Random::generate<int>(Range<int>(0, size++ - 1, false, false)));
         } else if (delta < 0) {
-            delta = std::min(-delta, (int)layers.size() - 2);
+            delta = std::min(-delta, static_cast<int>(layers.size() - 2));
             for (int i = 0; i < delta; i++)
-                Random::pick(layers, 1, 1).del();
+                (*Random::pick(layers, 1, 1))->del();
         }
     }
 
     int depth = 0;
     const int depthMax = layers.size() - 1;
-    for (auto& layer : layers) {
-        auto& neurons = scope.neurons[layer];
+    for (auto layer : layers) {
+        auto neurons = scope.neurons[layer];
         if (dynamic && (depth != 0 || depth != depthMax)) {
             int delta = Random::log<int>(scope.config.mutate.neuron.add.rate) - Random::log<int>(scope.config.mutate.neuron.remove.rate);
             if (delta > 0) {
                 int size = neurons.size();
                 for (int i = 0; i < delta; i++)
-                    layer.add_neuron(Random::gen<int>(Range<int>(0, size++, true, false)));
+                    layer->add_neuron(Random::generate<int>(Range<int>(0, size++, true, false)));
             } else if (delta < 0) {
                 delta = std::min(-delta, (int)neurons.size());
                 for (int i = 0; i < delta; i++)
-                    Random::pick(neurons).del(false);
+                    (*Random::pick(neurons))->del(false);
             }
         }
 
@@ -122,32 +122,32 @@ void Network::evolve() {
         otherLayers.remove(layer);
 
         int height = 0;
-        for (auto& neuron : neurons) {
+        for (auto neuron : neurons) {
             if (Random::condition(scope.config.mutate.neuron.change.rate)) {
                 double amount = scope.config.mutate.neuron.change.amount;
-                neuron.mod_bias(Random::gen<double>(Range<double>(-amount, amount)));
+                neuron->mod_bias(Random::generate(amount));
             }
 
             int delta = Random::log<int>(scope.config.mutate.synapse.add.rate) - Random::log<int>(scope.config.mutate.synapse.remove.rate);
             if (delta > 0) {
                 int size = otherLayers.size();
                 for (int i = 0; i < delta; i++) {
-                    auto& targetNeurons = scope.neurons[Random::pick(otherLayers)];
-                    neuron.add_synapse(Random::pick(targetNeurons));
+                    auto targetNeurons = scope.neurons[*Random::pick(otherLayers)];
+                    neuron->add_synapse(**Random::pick(targetNeurons));
                 }
             } else if (delta < 0) {
-                auto& synapses = scope.synapses.list[neuron];
+                auto synapses = scope.synapses.list[neuron];
                 delta = std::min(-delta, (int)synapses.size());
                 for (int i = 0; i < delta; i++)
-                    Random::pick(synapses).del(&neuron);
+                    (*Random::pick(synapses))->del(neuron);
             }
 
             if (depth != 0) {
-                auto& sources = scope.synapses.source[neuron];
-                for (auto& [ source, synapse ] : sources) {
+                auto sources = scope.synapses.source[neuron];
+                for (auto [ source, synapse ] : sources) {
                     if (Random::condition(scope.config.mutate.synapse.change.rate)) {
                         double amount = scope.config.mutate.synapse.change.amount;
-                        synapse.mod_weight(Random::gen<double>(Range<double>(-amount, amount)));
+                        synapse->mod_weight(Random::generate(amount));
                     }
                 }
             }
@@ -157,25 +157,25 @@ void Network::evolve() {
 
 void Network::prime() const {
     int depth = 0;
-    for (auto& layer : scope.layers) {
-        layer.set_depth(depth++);
-        layer.prime();
+    for (auto layer : scope.layers) {
+        layer->set_depth(depth++);
+        layer->prime();
     }
 };
 std::string Network::get_code() const {
     prime();
 
     std::string code = "", rtn = "";
-    std::unordered_map<const Neuron&, const Neuron::CodeData&> data;
+    std::unordered_map<const Neuron*, const Neuron::CodeData*> data;
 
     auto layers = scope.layers;
 
     int depth = 0;
     const int depthMax = layers.size() - 1;
-    for (const auto& layer : layers) {
-        auto& neurons = scope.neurons[layer];
-        for (const auto& neuron : neurons) {
-            const Neuron::CodeData datum = neuron.get_code(data, activator.function);
+    for (const auto layer : layers) {
+        auto neurons = scope.neurons[layer];
+        for (const auto neuron : neurons) {
+            const Neuron::CodeData datum = neuron->get_code(data, activator.function);
             data.insert_or_assign(neuron, datum);
 
             if (depth == depthMax) {
@@ -198,7 +198,8 @@ std::string Network::get_code() const {
         depth++;
     }
 
-    return  "#include <cstdlib>\n"
+    return  "#include <cmath>\n"
+            "#include <cstdlib>\n"
             "#include <iostream>\n"
             "\n"
             "const auto activator = "+activator.string+";\n"
@@ -241,11 +242,11 @@ const Network::ImportExport Network::_export() const {
 };
 
 void Network::del() {
-    for (auto& layer : scope.layers)
-        layer.del();
+    for (auto layer : scope.layers)
+        layer->del();
 
-    networker.del(0x0, id);
-    compiler.remove("network-"+std::to_string(id));
+    networker.erase(0x0, id);
+    compiler.erase("network-"+std::to_string(id));
 
     delete this;
 };

@@ -15,7 +15,7 @@ void Synapse::set_weight(const double w) {
 };
 double Synapse::mod_weight(const double n) {
     const auto range = scope.config.synapse.weight;
-    weight = std::clamp(weight + n, range.get_min(), range.get_max());
+    weight = std::clamp(weight + n, range.min(), range.max());
     return weight;
 };
 

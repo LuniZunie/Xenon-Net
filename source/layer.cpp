@@ -2,7 +2,7 @@
 
 int Layer::get_id() const { return id; };
 int Layer::get_index() const { return network.get_index(); };
-int Layer::get_size() const { return scope.neurons[*this].size(); };
+int Layer::get_size() const { return scope.neurons[this].size(); };
 
 int Layer::get_depth() const { return depth; };
 void Layer::set_depth(const int d) {
@@ -20,19 +20,19 @@ Neuron Layer::add_neuron(const int h) const {
     Neuron neuron(population, network, ref, scope);
 
     neuron.set_height(h);
-    scope.neurons[ref].insert(std::next(scope.neurons[ref].begin(), h), neuron);
+    scope.neurons[this].insert(std::next(scope.neurons[this].begin(), h), &neuron);
 
     return neuron;
 };
 
 void Layer::prime() const {
     int h = 0;
-    for (auto& neuron : scope.neurons[*this])
-        neuron.set_height(h++);
+    for (auto neuron : scope.neurons[this])
+        neuron->set_height(h++);
 };
 void Layer::update(const Neuron::Update type) const {
-    for (auto& neuron : scope.neurons[*this])
-        neuron.update(type);
+    for (auto neuron : scope.neurons[this])
+        neuron->update(type);
 };
 
 const Layer::ImportExport Layer::_export() const {
@@ -40,11 +40,10 @@ const Layer::ImportExport Layer::_export() const {
 };
 
 void Layer::del() {
-    const auto& ref = *this;
-    for (auto& neuron : scope.neurons[ref])
-        neuron.del(true);
-    scope.neurons.erase(ref);
+    for (auto neuron : scope.neurons[this])
+        neuron->del(true);
+    scope.neurons.erase(this);
 
-    scope.registry.del(0x1, id);
+    scope.registry.erase(0x1, id);
     delete this;
 };

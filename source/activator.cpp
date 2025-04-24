@@ -1,4 +1,4 @@
-#include "..header/activator.hpp"
+#include "../header/activator.hpp"
 
 const std::unordered_map<std::string, std::string> ActivatorSearch::aliases = ActivatorSearch::ParseAliases({
     { "binary-step", { "binary step", "binary", "step" } },
