@@ -17,14 +17,12 @@ void Neuron::set_height(const int h) {
 
 double Neuron::get_bias() const { return bias; };
 void Neuron::set_bias(const double b) {
-    const auto range = scope.config.neuron.bias;
-    if (range.outside(b))
+    if (scope.config.neuron.bias.outside(b))
         throw std::invalid_argument("Neuron: bias out of range.");
     bias = b;
 };
 double Neuron::mod_bias(const double n) {
-    const auto range = scope.config.neuron.bias;
-    bias = std::clamp(bias + n, range.min(), range.max());
+    bias = math::clamp(bias + n, scope.config.neuron.bias);
     return bias;
 };
 
@@ -111,9 +109,9 @@ const Neuron::ImportExport Neuron::_export() const {
     return { network.get_index(), layer.get_depth(), height, bias };
 };
 
-void Neuron::del(bool byLayer) {
+void Neuron::destruct(bool byLayer) {
     for (auto synapse : scope.synapses.list[this])
-        synapse->del(this);
+        synapse->destruct(this);
 
     scope.synapses.list.erase(this);
     scope.synapses.source.erase(this);

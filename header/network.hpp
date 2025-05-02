@@ -10,9 +10,9 @@
 #include "../typedef/functions.hpp"
 
 #include "../resource/compiler/.hpp"
-#include "../resource/random/.hpp"
-#include "../resource/range/.hpp"
-#include "../resource/registry/.hpp"
+#include "../module/random/main.hpp"
+#include "../module/range/main.hpp"
+#include "../module/registry/main.hpp"
 
 #include "configuration.hpp"
 #include "population.hpp"
@@ -38,10 +38,10 @@ struct NetworkScope {
 class Network {
     public:
         enum Status { Dead, Alive };
+        NetworkScope& scope;
 
     private:
         const Population& population;
-        NetworkScope& scope;
 
         struct Activator {
             ActivationFunction function;
@@ -115,5 +115,5 @@ class Network {
         void _import(const ImportExport data);
         const ImportExport _export() const;
 
-        void del();
+        void destruct();
 };

@@ -4,7 +4,7 @@
 #include <limits>
 #include <stdexcept>
 
-#include "../concepts/.hpp"
+#include "../concepts/main.hpp"
 
 template <typename T>
 concept RangeType = std::is_arithmetic_v<T>;
@@ -12,88 +12,87 @@ concept RangeType = std::is_arithmetic_v<T>;
 template <RangeType T>
 class Range {
     private:
-        static bool valid_bounds(T min, T max, T step, bool incMin, bool incMax) {
-            if (!incMin) min += step;
-            if (!incMax) max -= step;
+        static bool valid_bounds(T mn, T mx, T step, bool l, bool r) {
+            if (!l) mn += step;
+            if (!r) mx -= step;
         
-            return min <= max;
+            return mn <= mx;
         };
 
-        T _min, _max, _step;
-        bool incMin, incMax;
+        T _mn, _mx, _step;
+        bool _l, _r;
 
-        constexpr T smallest_value() const {
-            if constexpr (concepts::number::assert<T>(concepts::number::Integer))
+        constexpr T smallest() const {
+            if constexpr (concepts::number::assert<T, concepts::number::Integer>())
                 return 1;
-            else if constexpr (concepts::number::assert<T>(concepts::number::Floating))
+            else if constexpr (concepts::number::assert<T, concepts::number::Floating>())
                 return std::numeric_limits<T>::epsilon();
             else
                 throw std::invalid_argument("Unsupported type for Range.");
         };
 
         T stop() const {
-            const T min = this->min();
+            const T mn = min();
             T end;
-            if constexpr (concepts::number::assert<T>(concepts::number::Integer))
-                end = _max - (_max - min) % _step;
-            else if constexpr (concepts::number::assert<T>(concepts::number::Floating))
-                end = _max - std::fmod(_max - min, _step);
+            if constexpr (concepts::number::assert<T, concepts::number::Integer>())
+                end = _mx - (_mx - mn) % _step;
+            else if constexpr (concepts::number::assert<T, concepts::number::Floating>())
+                end = _mx - std::fmod(_mx - mn, _step);
             else
                 throw std::invalid_argument("Unsupported type for Range.");
         
-            if (!incMax && end == _max)
+            if (!_r && end == _mx)
                 end -= _step;
             return end;
         };
         T rstop() const {
-            const T max = this->max();
+            const T mx = max();
             T rend;
-            if constexpr (concepts::number::assert<T>(concepts::number::Integer))
-                rend = _min + (max - _min) % _step;
-            else if constexpr (concepts::number::assert<T>(concepts::number::Floating))
-                rend = _min + std::fmod(max - _min, _step);
+            if constexpr (concepts::number::assert<T, concepts::number::Integer>())
+                rend = _mn + (mx - _mn) % _step;
+            else if constexpr (concepts::number::assert<T, concepts::number::Floating>())
+                rend = _mn + std::fmod(mx - _mn, _step);
             else
                 throw std::invalid_argument("Unsupported type for Range.");
         
-            if (!incMin && rend == _min)
+            if (!_l && rend == _mn)
                 rend -= _step;
             return rend;
         };
 
     public:
-        Range(T min, T max, T step, bool l = true, bool r = true) :
-            _min(min), _max(max), _step(step),
-            incMin(l), incMax(r) {
-            if (_step <= 0)
+        Range(T mn, T mx, T step, bool l = true, bool r = true) :
+            _mn(mn), _mx(mx), _step(step),
+            _l(l), _r(r) {
+            if (step <= 0)
                 throw std::invalid_argument("Invalid step value.");
-            else if (!valid_bounds(_min, _max, _step, incMin, incMax))
+            else if (!valid_bounds(mn, mx, step, l, r))
                 throw std::invalid_argument("Invalid range bounds.");
         };
-        Range(T min, T max, bool incMin = true, bool incMax = true) : Range(min, max, smallest_value(), incMin, incMax) { };
-        Range(T n) : Range(-n, n, smallest_value(), true, true) { };
+        Range(T mn, T mx, bool l = true, bool r = true) : Range(mn, mx, smallest(), l, r) { };
+        Range(T n) : Range(-n, n, smallest(), true, true) { };
         Range(const Range<T>& other) :
-            _min(other._min), _max(other._max),
-            incMin(other.incMin), incMax(other.incMax),
-            _step(other._step) { };
+            _min(other._mn), _mx(other._mx), _step(other._step),
+            _l(other._l), _r(other._r) { };
         Range(Range<T>&& other) :
-            _min(other._min), _max(other._max),
-            incMin(other.incMin), incMax(other.incMax),
-            _step(other._step) {
-            other._min = 0, other._max = 0, other._step = 0;
+            _mn(other._mn), _mx(other._mx), _step(other._step),
+            _l(other._l), _r(other._r) {
+                other._mn = 0; other._mx = 0; other._step = 0;
+                other._l = true; other._r = true;
         };
 
-        T raw_min() const { return _min; };
-        T raw_max() const { return _max; };
+        T raw_min() const { return _mn; };
+        T raw_max() const { return _mx; };
 
-        T min() const { return incMin ? _min : _min + _step; };
-        T max() const { return incMax ? _max : _max - _step; };
+        T min() const { return _l ? _mn : _mn + _step; };
+        T max() const { return _r ? _mx : _mx - _step; };
         T step() const { return _step; };
 
-        bool include_left() const { return incMin; };
-        bool include_right() const { return incMax; };
+        bool include_left() const { return _l; };
+        bool include_right() const { return _r; };
 
         T difference() const { return min() - max(); };
-        int size() const { return std::abs(difference() / _step) + 1; };
+        size_t size() const { return std::abs(difference() / _step) + 1; };
         bool empty() const { return min() == max(); };
 
         bool inside(const T n) const { return n >= min() && n <= max(); };
@@ -101,15 +100,15 @@ class Range {
 
         Range<T> operator+(const T val) const {
             const auto m = val * _step;
-            return Range<T>(raw_min() + m, raw_max() + m, _step, incMin, incMax);
+            return Range<T>(raw_min() + m, raw_max() + m, _step, _l, _r);
         };
         Range<T> operator+=(const T val) {
             const auto m = val * _step;
-            _min += m, _max += m;
+            _mn += m, _mx += m;
             return *this;
         };
         Range<T>& operator++() {
-            _min += _step, _max += _step;
+            _mn += _step, _mx += _step;
             return *this;
         };
         Range<T> operator++(int) {
@@ -120,15 +119,15 @@ class Range {
 
         Range<T> operator-(const T val) const {
             const auto m = val * _step;
-            return Range<T>(raw_min() - m, raw_max() - m, _step, incMin, incMax);
+            return Range<T>(raw_min() - m, raw_max() - m, _step, _l, _r);
         };
         Range<T> operator-=(const T val) {
             const auto m = val * _step;
-            _min -= m, _max -= m;
+            _mn -= m, _mx -= m;
             return *this;
         };
         Range<T>& operator--() {
-            _min -= _step, _max -= _step;
+            _mn -= _step, _mx -= _step;
             return *this;
         };
         Range<T> operator--(int) {

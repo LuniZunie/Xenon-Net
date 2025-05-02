@@ -13,9 +13,9 @@
 #include "../typedef/functions.hpp"
 
 #include "../resource/compiler/.hpp"
-#include "../resource/math/.hpp"
-#include "../resource/random/.hpp"
-#include "../resource/registry/.hpp"
+#include "../module/math/main.hpp"
+#include "../module/random/main.hpp"
+#include "../module/registry/main.hpp"
 
 #include "activator.hpp"
 #include "configuration.hpp"
@@ -63,7 +63,7 @@ class Population {
         struct Activator {
             ActivationFunction function;
             std::string string;
-        } _activator{ ActivatorSearch::get_function("sigmoid"), ActivatorSearch::get_string("sigmod") };
+        } _activator{ ActivatorSearch::function("sigmoid"), ActivatorSearch::string("sigmod") };
         FitnessFunction _trainer{ [](NetworkIndex, std::vector<double>) -> double { return 0.0; } };
         InputFunction _sender{ [](NetworkIndex) -> std::vector<double> { return { }; } };
         OutputFunction _receiver{ [](NetworkIndex, std::vector<double>) { } };

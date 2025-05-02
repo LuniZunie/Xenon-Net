@@ -8,9 +8,9 @@ template <typename T>
 class Registry {
     private:
         struct Group {
-            int next;
+            size_t next = 0;
             std::unordered_set<int> items;
-            Group() : next(0), items() { };
+            Group() : items() { };
         };
         std::unordered_map<T, Group> groups;
 
@@ -21,19 +21,19 @@ class Registry {
 
         ~Registry() { clear(); };
 
-        int add(const T label) {
+        size_t add(const T label) {
             if (groups.find(label) == groups.end())
                 groups[label] = Group();
         
             Group& group = groups[label];
-            const int id = group.next++;
+            const size_t id = ++group.next;
             group.items.insert(id);
         
             return id;
         };
 
         bool has(const T label) const { return groups.find(label) != groups.end(); };
-        bool has(const T label, const int id) const {
+        bool has(const T label, const size_t id) const {
             auto it = groups.find(label);
             if (it == groups.end())
                 return false;
@@ -48,13 +48,13 @@ class Registry {
                 return false;
         
             auto& items = it->second.items;
-            for (const auto& id : items)
-                items.erase(id);
+            for (auto it2 = items.begin(); it2 != items.end(); ++it2)
+                items.erase(*it2);
         
             groups.erase(label);
             return true;
         };
-        bool erase(const T label, const int id) {
+        bool erase(const T label, const size_t id) {
             auto it = groups.find(label);
             if (it == groups.end())
                 return false;
@@ -71,10 +71,10 @@ class Registry {
         };
 
         void clear() {
-            for (auto& group : groups) {
-                auto& items = group.second.items;
-                for (const auto& id : items)
-                    items.erase(id);
+            for (auto it = groups.begin(); it != groups.end(); ++it) {
+                auto& items = it->second.items;
+                for (auto it2 = items.begin(); it2 != items.end(); ++it2)
+                    items.erase(*it2);
             }
             groups.clear();
         };

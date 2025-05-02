@@ -25,9 +25,9 @@ class Layer {
             population(pop), network(net), scope(scp),
             id(scope.registry.add(0x1)), depth(-1) { };
 
-        int get_id() const;
-        int get_index() const;
-        int get_size() const;
+        int get_id() const { return id; };
+        int get_index() const { return network.get_index(); };
+        int get_size() const { return scope.neurons[this].size(); };
 
         int get_depth() const;
         void set_depth(const int d);
@@ -39,5 +39,5 @@ class Layer {
 
         const ImportExport _export() const;
 
-        void del();
+        void destruct();
 };

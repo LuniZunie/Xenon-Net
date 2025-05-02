@@ -6,8 +6,9 @@
 
 #include "../typedef/functions.hpp"
 
-#include "../resource/random/.hpp"
-#include "../resource/range/.hpp"
+#include "../module/math/main.hpp"
+#include "../module/random/main.hpp"
+#include "../module/range/main.hpp"
 
 #include "configuration.hpp"
 #include "population.hpp"
@@ -61,5 +62,5 @@ class Neuron {
         void _import(const ImportExport data);
         const ImportExport _export() const;
 
-        void del(bool byLayer);
+        void destruct(bool byLayer);
 };

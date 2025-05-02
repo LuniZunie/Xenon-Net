@@ -41,7 +41,7 @@ Layer Network::add_layer(const int d) const {
 
 void Network::clear() {
     for (auto layer : scope.layers)
-        layer->del();
+        layer->destruct();
     fitness = {0, 0};
 };
 void Network::init() {
@@ -54,12 +54,11 @@ void Network::init() {
     for (int j = 0; j < inputs; j++)
         inputLayer.add_neuron(j);
 
-    if (scope.config.network.hidden.has_value()) {
-        for (const int& h : scope.config.network.hidden.value()) {
-            Layer layer = add_layer(i++);
-            for (int j = 0; j < h; j++)
-                layer.add_neuron(j);
-        }
+    const auto& hidden = scope.config.network.hidden.value_or(std::vector<int>{});
+    for (const int h : hidden) {
+        Layer layer = add_layer(i++);
+        for (int j = 0; j < h; j++)
+            layer.add_neuron(j);
     }
 
     Layer outputLayer = add_layer(i++);
@@ -95,7 +94,7 @@ void Network::evolve() {
         } else if (delta < 0) {
             delta = std::min(-delta, static_cast<int>(layers.size() - 2));
             for (int i = 0; i < delta; i++)
-                (*Random::pick(layers, 1, 1))->del();
+                Random::pick(layers, 1, 1)->destruct();
         }
     }
 
@@ -112,7 +111,7 @@ void Network::evolve() {
             } else if (delta < 0) {
                 delta = std::min(-delta, (int)neurons.size());
                 for (int i = 0; i < delta; i++)
-                    (*Random::pick(neurons))->del(false);
+                    Random::pick(neurons)->destruct(false);
             }
         }
 
@@ -132,14 +131,14 @@ void Network::evolve() {
             if (delta > 0) {
                 int size = otherLayers.size();
                 for (int i = 0; i < delta; i++) {
-                    auto targetNeurons = scope.neurons[*Random::pick(otherLayers)];
-                    neuron->add_synapse(**Random::pick(targetNeurons));
+                    auto targetNeurons = scope.neurons[Random::pick(otherLayers)];
+                    neuron->add_synapse(*Random::pick(targetNeurons));
                 }
             } else if (delta < 0) {
                 auto synapses = scope.synapses.list[neuron];
                 delta = std::min(-delta, (int)synapses.size());
                 for (int i = 0; i < delta; i++)
-                    (*Random::pick(synapses))->del(neuron);
+                    Random::pick(synapses)->destruct(neuron);
             }
 
             if (depth != 0) {
@@ -241,9 +240,9 @@ const Network::ImportExport Network::_export() const {
     return { index, fitness };
 };
 
-void Network::del() {
+void Network::destruct() {
     for (auto layer : scope.layers)
-        layer->del();
+        layer->destruct();
 
     networker.erase(0x0, id);
     compiler.erase("network-"+std::to_string(id));

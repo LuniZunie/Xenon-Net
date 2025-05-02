@@ -41,8 +41,8 @@ Population::NetworkStat Population::worst(std::string type) const {
 };
 
 void Population::activator(const std::string name, const std::vector<double> consts) {
-    _activator.function = ActivatorSearch::get_function(name, consts);
-    _activator.string = ActivatorSearch::get_string(name, consts);
+    _activator.function = ActivatorSearch::function(name, consts);
+    _activator.string = ActivatorSearch::string(name, consts);
 };
 void Population::trainer(FitnessFunction fn) { _trainer = fn; };
 void Population::sender(InputFunction fn) { _sender = fn; };
@@ -107,9 +107,9 @@ int Population::kill(Args... args) {
     try {
         for (const auto& group : { args... }) {
             if (group.group < 0 || group.group >= groupCount)
-                throw;
-            if (group.index < 0 || group.index >= groupSize)
-                throw;
+                throw std::invalid_argument("Population::kill: invalid group.");
+            else if (group.index < 0 || group.index >= groupSize)
+                throw std::invalid_argument("Population::kill: invalid index.");
 
             auto& network = networks[group.group * groupSize + group.index];
             if (network.get_status() == Network::Alive) {
@@ -206,8 +206,7 @@ void Population::evolve() {
         fits.push_back({ network, fit });
 
         if (best == nullptr) {
-            best = &network;
-            worst = &network;
+            best = worst = &network;
             max = min = fit;
         } else if (fit > max) {
             best = &network;
@@ -221,20 +220,18 @@ void Population::evolve() {
     statistics.best.gen = { best->get_fitness(), best->get_code() };
     statistics.worst.gen = { worst->get_fitness(), worst->get_code() };
 
-    if (statistics.generation == 0) {
-        statistics.best.all = { best->get_fitness(), best->get_code() };
-        statistics.worst.all = { worst->get_fitness(), worst->get_code() };
-    } else if (statistics.best.gen > statistics.best.all)
-        statistics.best.all = { best->get_fitness(), best->get_code() };
-    else if (statistics.worst.gen < statistics.worst.all)
-        statistics.worst.all = { worst->get_fitness(), worst->get_code() };
+    const bool firstGen = statistics.generation == 0;
+    if (firstGen || statistics.best.gen > statistics.best.all)
+        statistics.best.all = statistics.best.gen;
+    else if (firstGen || statistics.worst.gen < statistics.worst.all)
+        statistics.worst.all = statistics.worst.gen;
 
     double weight = 0;
     for (auto& [ network, fit ] : fits) {
-        double w = Math::norm(fit, min, max);
         if (config.network.fitness.inverse)
-            w = 1 - w;
-        w = Math::denorm(w, config.population.equality, 1.0);
+            fit = max - fit + min * 2;
+
+        double w = math::map(fit, min, max, config.population.equality, 1.0);
 
         weight += w;
         fit = w;

@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "../resource/random/.hpp"
-#include "../resource/range/.hpp"
+#include "../module/math/main.hpp"
+#include "../module/random/main.hpp"
+#include "../module/range/main.hpp"
 
 #include "configuration.hpp"
 #include "population.hpp"
@@ -45,6 +46,11 @@ class Synapse {
         int get_id() const;
         int get_index() const;
 
+        int get_source_depth() const;
+        int get_source_height() const;
+        int get_target_depth() const;
+        int get_target_height() const;
+
         const Neuron& get_source() const;
         const Neuron& get_target() const;
 
@@ -55,5 +61,5 @@ class Synapse {
         void _import(const ImportExport data);
         const ImportExport _export() const;
 
-        void del(Neuron* by = nullptr);
+        void destruct(Neuron* by = nullptr);
 };

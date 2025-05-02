@@ -1,8 +1,8 @@
 #include "../header/layer.hpp"
 
-int Layer::get_id() const { return id; };
+/* int Layer::get_id() const { return id; };
 int Layer::get_index() const { return network.get_index(); };
-int Layer::get_size() const { return scope.neurons[this].size(); };
+int Layer::get_size() const { return scope.neurons[this].size(); }; */
 
 int Layer::get_depth() const { return depth; };
 void Layer::set_depth(const int d) {
@@ -39,9 +39,9 @@ const Layer::ImportExport Layer::_export() const {
     return { network.get_index(), depth };
 };
 
-void Layer::del() {
+void Layer::destruct() {
     for (auto neuron : scope.neurons[this])
-        neuron->del(true);
+        neuron->destruct(true);
     scope.neurons.erase(this);
 
     scope.registry.erase(0x1, id);

@@ -1,6 +1,6 @@
 #include "../header/activator.hpp"
 
-const std::unordered_map<std::string, std::string> ActivatorSearch::aliases = ActivatorSearch::ParseAliases({
+const auto ActivatorSearch::_aliases = ActivatorSearch::parse_aliases({
     { "binary-step", { "binary step", "binary", "step" } },
     { "exponential-linear-unit", { "exponential linear unit", "elu" } },
     { "gaussian", { "gaussian" } },
@@ -17,7 +17,7 @@ const std::unordered_map<std::string, std::string> ActivatorSearch::aliases = Ac
     { "hyperbolic-tangent", { "hyperbolic tangent", "tanh" } }
 });
 
-const std::unordered_map<std::string, int> ActivatorSearch::constants = {
+const std::unordered_map<std::string, int> ActivatorSearch::_constants = {
     { "exponential-linear-unit", 1 },
     { "leaky-rectified-linear-unit", 1 },
     { "parametric-rectified-linear-unit", 1 },
